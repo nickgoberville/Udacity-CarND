@@ -1,0 +1,6 @@
+{
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "git.ignoreLimitWarning": true,
+    "python.pythonPath": "/home/nickg/.anaconda3/envs/base3/bin/python"
+}
