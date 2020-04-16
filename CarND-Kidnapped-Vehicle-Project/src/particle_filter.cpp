@@ -206,8 +206,8 @@ void ParticleFilter::resample() {
    *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
   std::default_random_engine gen;
-  vector<double> weights;
-  double max_weight = 0.00000001;
+  vector<double> weights; // used to clear weights
+  double max_weight = 0.00000001; //assign really low value for initialization
   for (int i=0; i<num_particles; ++i){
     weights.push_back(particles[i].weight);
     if (particles[i].weight > max_weight){
@@ -215,6 +215,7 @@ void ParticleFilter::resample() {
     }
   }
 
+  //get random values for weight (using circular method shown in class)
   std::uniform_real_distribution<double> dist_double(0.0, max_weight);
   std::uniform_int_distribution<int> dist_int(0, num_particles-1);
 
