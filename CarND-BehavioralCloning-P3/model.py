@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 from keras import Sequential
 from keras.layers import Dense, Conv2D, Flatten, Lambda, Dropout, Cropping2D
+from keras.callbacks import EarlyStopping
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
@@ -69,7 +70,7 @@ def preprocess(image):
     sizex = image.shape[1]
     sizey = image.shape[0]
     #image = image[70:sizey-25, :]      ## Add cropping to NN model
-    image = cv2.GaussianBlur(image, (3,3), 0)
+    #image = cv2.GaussianBlur(image, (3,3), 0)
     return image
 
 '''def get_data(list_of_driving_logs):
@@ -186,21 +187,22 @@ def generator(samples, batch_size):
                 #print('n: {} n_samples: {}'.format(n, num_samples))
                 
                 #while batch_n < batch_size:
-                try:
-                    #if np.random.choice(flip_opts):
-                    #    print("n: {} flipping? {}".format(n, 'yes'))
-                    #    img = cv2.flip(preprocess(cv2.imread(X[n])), 1)
-                    #    ang = -1.0*y[n]
-                    #else:
-                    #    print("n: {} flipping? {}".format(n, 'no'))                        
-                    img = preprocess(cv2.imread(X[n]))
-                    ang = y[n]                        
+         #       try:
+                if np.random.choice(flip_opts):
+                    #print("n: {} flipping? {}".format(n, 'yes'))
+                    img = cv2.flip(preprocess(cv2.imread(X[n])), 1)
+                    ang = -1.0*y[n]
                     X_batch.append(img)
                     y_batch.append(ang)
-                except:
+                    #print("n: {} flipping? {}".format(n, 'no'))                        
+                img = preprocess(cv2.imread(X[n]))
+                ang = y[n]                        
+                X_batch.append(img)
+                y_batch.append(ang)
+        #        except:
                     #batch_n -= 1
                     #n -= 1
-                    continue
+          #          continue
                 batch_n += 1
                 #n += 1
                     #print(n)
@@ -212,22 +214,30 @@ def generator(samples, batch_size):
 def main():
     batch_size=128
     # set lists of directories to use data from
-    list_of_driving_logs = ['data/data/']#['data/updated-center-normal/', 'data/center-normal/', 'data/center-reverse/', 'data/center-normal2/']#]
+    list_of_driving_logs = ['data/data/']#, 'data/updated-center-normal/', 'data/center-normal/', 'data/center-normal2/']#, 'data/center-reverse/', 'data/center-normal2/']
     # set lists of directories to use for data correction
     #list_of_correction_logs = ['data/left-normal/', 'data/right-normal/']
     # Get list of image paths and steering commands
     image_paths, steer_cmds = get_data(list_of_driving_logs)
+    #print(len(image_paths), len(steer_cmds))
     #correction_img_paths, correction_steer_cmds = get_correction_data(list_of_correction_logs)
+    #print(len(correction_img_paths), len(correction_steer_cmds))
     # appending correction data to image_paths and steer_cmds
-    #image_paths.append(correction_img_paths)
-    #steer_cmds.append(correction_steer_cmds)
+    #image_paths = image_paths + correction_img_paths
+    #steer_cmds = steer_cmds + correction_steer_cmds
+    #print(len(image_paths), len(steer_cmds))
     # Split and shuffle data
-    X_test, X_train, y_test, y_train = train_test_split(image_paths, steer_cmds, train_size=0.1, shuffle=True)
+    image_paths, steer_cmds = shuffle(image_paths, steer_cmds)
+    X_train, X_test, y_train, y_test = train_test_split(image_paths, steer_cmds, test_size=0.2, shuffle=False)
+    X_train, y_train = shuffle(X_train, y_train)
+    X_test, y_test = shuffle(X_test, y_test)
+    print(len(X_train), len(steer_cmds))    
     X_train = X_train[0:-(len(X_train)%batch_size)]
     X_test = X_test[0:-(len(X_test)%batch_size)]
     y_train = y_train[0:-(len(y_train)%batch_size)]
     y_test = y_test[0:-(len(y_test)%batch_size)]
-    #print("Test...X: {} y: {}\nTrain...X: {} y: {}".format(len(X_test)//batch_size, len(y_test), len(X_train)//batch_size, len(y_train)))
+
+    print("Test...X: {} y: {}\nTrain...X: {} y: {}".format(len(X_test)//batch_size, len(X_test), len(X_train)//batch_size, len(X_train)))
     time.sleep(5)
     # Get image to use for input_shape of DNN
     ex_img = preprocess(cv2.imread(X_train[950]))
@@ -249,9 +259,10 @@ def main():
     model.add(Conv2D(48,5,5, subsample=(2,2), activation='elu'))
     model.add(Conv2D(64,3,3, activation='elu'))
     model.add(Conv2D(64,3,3, activation='elu'))
+    model.add(Dropout(0.8))    
     model.add(Flatten())
-    model.add(Dropout(0.25))    
     model.add(Dense(100))
+    #model.add(Dropout(0.6))
     model.add(Dense(50))
     model.add(Dense(10))
     model.add(Dense(1))
@@ -259,7 +270,8 @@ def main():
     # Compile using adam optimizer and fit to train/validation data
     model.compile('adam', loss='mse')
     #history_object = model.fit(images, steer_cmds, verbose=1, validation_split=0.2, epochs=10)
-    history_object = model.fit_generator(train_generator, steps_per_epoch=math.floor(len(X_train)/batch_size), validation_data=test_generator, validation_steps=math.floor(len(X_test)/batch_size), epochs=5, verbose=1)
+    es = EarlyStopping(verbose=1)
+    history_object = model.fit_generator(train_generator, steps_per_epoch=math.floor(len(X_train)/batch_size), validation_data=test_generator, validation_steps=math.floor(len(X_test)/batch_size), epochs=15, verbose=1, callbacks=[es])
 
     # Model results visualization
     fig = plt.figure()
@@ -273,7 +285,7 @@ def main():
     plt.show()
 
     # Save the model
-    model.save('model.h5')
+    model.save('modelv2.h5')
 
 if __name__ == '__main__':
     main()
