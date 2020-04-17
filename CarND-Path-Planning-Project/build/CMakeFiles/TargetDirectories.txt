@@ -1,0 +1,3 @@
+/home/nickg/workspaces/Udacity-selfdriving-nanodegree/CarND-Path-Planning-Project/build/CMakeFiles/rebuild_cache.dir
+/home/nickg/workspaces/Udacity-selfdriving-nanodegree/CarND-Path-Planning-Project/build/CMakeFiles/path_planning.dir
+/home/nickg/workspaces/Udacity-selfdriving-nanodegree/CarND-Path-Planning-Project/build/CMakeFiles/edit_cache.dir
