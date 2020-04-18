@@ -1,5 +1,33 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
+
+![img](path_plan_outcome.png)
+
+### Project Reflection
+This purpose of this reflection is to explain the code model for generating paths. The process to generae the paths can be seen in the steps below. The code which will be discussed is all within `lines 110-377` of `main.cpp`
+___
+######Lane changes and speed control
+1. Set initial speed to zero and increment speed at 0.224 m/s each iteration to meet jerk requirements.
+	* You can see speed set in `line 69` as variable `ref_val`.
+2. Set initial lane starting position
+	* `line 65`
+3. I then used the sensor fusion data to gather a vector of cars within 30m of my car for each lane. These vectors for the left, center, and right lanes were assigned and used in `lines 138-175`
+	* The information from these lines are printed to the console in `lines 177-206`
+4. Then I check if a vehicle is within 30m ahead of my car, and flag `too_close=true` if there is a vehicle too close. Additionally, the speed of my car is then set to the speed of the car ahead.
+	* see `lines 229-231`
+5. Then check to see if there are any cars in the adjacent lanes to see if it is safe for a lane change.
+	* see `lines 236-260` for this.
+___
+######Getting x,y points
+1. This process begins in `lines 266-273` declaring some necessary variables
+2. Check if there are previous data points and assign the last to points to a vector to be used with `spline.h` called `ptsx` and `ptsy` for the x and y points. See`lines 276-286`.
+3. Get 3 more x,y data points to be used with spline 30m, 60m, and 90m ahead of the vehicle. See `lines 306-317`. 
+4. Transform these coordinates to local car coordinates used the transformation see in `lines 320-328`.
+5. Fit a spline to these points. See `lines 334-338`
+6. Initiate vector of the next 50 values by appending the last path values onto new x,y vectors. See `lines 337-345`.
+7. Calculate how to break up spline points to travel at desired velocity. See `lines 348-352`.
+8. Finally, fill the remaining values in the `next_x_vals` and `next_y_vals` vectors with values from the spline points. 
+9. DONE!
    
 ### Simulator.
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).  

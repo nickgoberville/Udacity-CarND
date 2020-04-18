@@ -17,11 +17,12 @@ using std::vector;
 struct Vehicle
 {
   int id;
-  float dist;
-  float speed;
-  float rel_speed;
-  int lane;
-  bool warning;
+  double speed;
+  double check_car_s;
+  float vel_x;
+  float vel_y;
+  float s;
+  float d;
 };
 
 int main() {
@@ -106,10 +107,6 @@ int main() {
           //   of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
 
-
-          /**
-           * BEGINNING OF MY CODE
-           */ 
           //number of points previously used
           int prev_size = previous_path_x.size();
           
@@ -122,10 +119,9 @@ int main() {
           float d_tol = 2;
           //setting tolerance for s for checking if vehicle is in lane
           float s_tol = ref_vel*0.8;
-          // changing lane tolerance for s
-          float turn_tol = 30;
+          float turn_tol = 50;
           //set speed limit
-          float speed_limit = 48;
+          float speed_limit = 50;
 
           //sensor fusion code
           if (prev_size > 0)
@@ -135,132 +131,228 @@ int main() {
 
           bool too_close = false;
 
-          vector<Vehicle> left_cars;
-          vector<Vehicle> center_cars;
-          vector<Vehicle> right_cars;
-          //VERSION 3
-          for (int i = 0; i < sensor_fusion.size(); ++i)
-          {
-            //calculate vehicle distance
-            float dist = distance(car_x, car_y, (float)sensor_fusion[i][1], (float)sensor_fusion[i][2]);
-            if (dist < turn_tol)
-            {
-              //get the vehicle's speed
-              float car_speed = distance(0, (float)sensor_fusion[i][3], 0, (float)sensor_fusion[i][3])*2.24;
-              float car_rel_speed = ref_vel - car_speed;
-              //get the lane the detected vehicle is in              
-              float d = sensor_fusion[i][6];
-              int vehicle_lane;
-              if (d < (left_lane+d_tol) && d > (left_lane-d_tol)){
-                vehicle_lane = left_lane;
-              } else if (d < (center_lane+d_tol) && d > (center_lane-d_tol)){
-                vehicle_lane = center_lane;
-              } else if (d < (right_lane+d_tol) && d > (right_lane-d_tol)){
-                vehicle_lane = right_lane;
-              }
-              //identify if this is a warning or not
-              bool warning = false;
-              if ((dist < 30.0))// || (dist < 20 && car_rel_speed > 8))
-              {
-                bool warning = true;
-              }
-            if (vehicle_lane == left_lane){
-              left_cars.push_back({i, dist, car_speed, car_rel_speed, vehicle_lane, warning});
-            } else if (vehicle_lane == right_lane){
-              right_cars.push_back({i, dist, car_speed, car_rel_speed, vehicle_lane, warning});
-            } else{
-              center_cars.push_back({i, dist, car_speed, car_rel_speed, vehicle_lane, warning});
-            } 
-            }
-          }
-
-          for (int i = 0; i < left_cars.size(); ++i)
-          {
-            //print all values out
-            std::cout << "Sensor fusion index: " << left_cars[i].id << std::endl;
-            std::cout << "\tdistance: " << left_cars[i].dist << std::endl;
-            std::cout << "\tspeed: " << left_cars[i].speed << std::endl;
-            std::cout << "\trelative speed: " << left_cars[i].rel_speed << std::endl;
-            std::cout << "\tlane: " << "LEFT" << std::endl;
-            std::cout << "\twarning: " << left_cars[i].warning << std::endl;
-          }
-          for (int i = 0; i < center_cars.size(); ++i)
-          {
-            //print all values out
-            std::cout << "Sensor fusion index: " << center_cars[i].id << std::endl;
-            std::cout << "\tdistance: " << center_cars[i].dist << std::endl;
-            std::cout << "\tspeed: " << center_cars[i].speed << std::endl;
-            std::cout << "\trelative speed: " << center_cars[i].rel_speed << std::endl;
-            std::cout << "\tlane: " << "CENTER" << std::endl;
-            std::cout << "\twarning: " << center_cars[i].warning << std::endl;
-          }
-          for (int i = 0; i < right_cars.size(); ++i)
-          {
-            //print all values out
-            std::cout << "Sensor fusion index: " << right_cars[i].id << std::endl;
-            std::cout << "\tdistance: " << right_cars[i].dist << std::endl;
-            std::cout << "\tspeed: " << right_cars[i].speed << std::endl;
-            std::cout << "\trelative speed: " << right_cars[i].rel_speed << std::endl;
-            std::cout << "\tlane: " << "RIGHT" << std::endl;
-            std::cout << "\twarning: " << right_cars[i].warning << std::endl;
-          }                    
-          
           //for each car detected from sensors
           // VERSION 1 -- SENSOR FUSION
+          //for (int i = 0; i < sensor_fusion.size(); ++i)
+          //{
+            //check if car is in my lane
+            //std::cout << "Sensor fusion index: " << i << std::endl;            
+            //for (int j = 0; j < sensor_fusion[i].size(); ++j){
+            //  std::cout << "\tval " << j << " --> " << sensor_fusion[i][j] << std::endl;
+            //}
+            //float d = sensor_fusion[i][6];
+            //if (d < (lane_offset+d_tol) && d > (lane_offset-d_tol))
+            //{
+            //  double vx = sensor_fusion[i][3]; //gets vehicle x velocity
+            //  double vy = sensor_fusion[i][4]; //gets vehicle y velocity
+            //  double check_speed = sqrt(vx*vx+vy*vy); //get magnitude of velocity using x,y vals
+            //  double check_car_s = sensor_fusion[i][5]; //gets distance ahead from vehicle
+
+            //  check_car_s += ((double)prev_size*.02*check_speed); //if using previous points can project s value out
+            //  //check s values greater than mine and s gap
+            //  if((check_car_s > car_s) && ((check_car_s - car_s) < s_tol))
+            //  {
+                /** TODO: make this more sophisticated
+                 * --> Use relative velocity to determine how fast to slow down
+                */
+                //ref_vel = 29.5; 
+            //    too_close = true;
+            //    speed_limit = check_speed*2.24;
+            //    float relative_vel = ref_vel - speed_limit;
+            //    std::cout << relative_vel << std::endl;
+                //if (lane>0)
+                //{
+                //  lane = 0;
+                //}
+              //}
+            //}
+          //}
+          
+          // append vehicle values to which lane they are in
+          // VERSION 2
+          vector<Vehicle> left_cars;
+          vector<Vehicle> center_cars;
+          vector<Vehicle> right_cars;          
           for (int i = 0; i < sensor_fusion.size(); ++i)
           {
-            //check if car is in my lane
-            float d = sensor_fusion[i][6];
-            // if in same lane
-            if (d < (lane_offset+d_tol) && d > (lane_offset-d_tol))
+            double vx = sensor_fusion[i][3]; //gets vehicle x velocity
+            double vy = sensor_fusion[i][4]; //gets vehicle y velocity
+            double speed = sqrt(vx*vx+vy*vy)*2.24;
+            double check_car_s = (double)sensor_fusion[i][5] + ((double)prev_size*.02*speed/2.24);
+            std::cout << "index: " << i << "check_car_s: " << check_car_s << "error with car_s: " << fabs(check_car_s-car_s) << std::endl;
+            if (fabs(check_car_s-car_s) <= 100)
             {
-              double vx = sensor_fusion[i][3]; //gets vehicle x velocity
-              double vy = sensor_fusion[i][4]; //gets vehicle y velocity
-              double check_speed = sqrt(vx*vx+vy*vy); //get magnitude of velocity using x,y vals
-              double check_car_s = sensor_fusion[i][5]; //gets distance ahead from vehicle
+              if (sensor_fusion[i][6] < (left_lane+d_tol) && sensor_fusion[i][6] > (left_lane-d_tol))
+              {
+                left_cars.push_back({i, speed, check_car_s, sensor_fusion[i][3], sensor_fusion[i][4], sensor_fusion[i][5], sensor_fusion[i][6]});
+              }
+              else if (sensor_fusion[i][6] < (center_lane+d_tol) && sensor_fusion[i][6] > (center_lane-d_tol))
+              {
+                center_cars.push_back({i, speed, check_car_s, sensor_fusion[i][3], sensor_fusion[i][4], sensor_fusion[i][5], sensor_fusion[i][6]});
+              }
+              else if (sensor_fusion[i][6] < (right_lane+d_tol) && sensor_fusion[i][6] > (right_lane-d_tol))
+              {
+                right_cars.push_back({i, speed, check_car_s, sensor_fusion[i][3], sensor_fusion[i][4], sensor_fusion[i][5], sensor_fusion[i][6]});
+              }              
+            }
 
-              check_car_s += ((double)prev_size*.02*check_speed); //if using previous points can project s value out
-              //check s values greater than mine and s gap
+          }
+
+          for (int j = 0; j < left_cars.size(); ++j)
+          {
+            Vehicle left_car = left_cars[j];
+            if ((left_car.check_car_s-car_s) > turn_tol)
+            {
+              //std::cout << "Left clear" << std::endl;
+            }
+          }
+
+          //for driving in center lane
+          if (fabs(car_d-center_lane) <= 0.5)
+          {
+            for (int i = 0; i < center_cars.size(); ++i)
+            {
+              Vehicle center_car = center_cars[i];
+              double check_car_s = center_car.check_car_s;
               if((check_car_s > car_s) && ((check_car_s - car_s) < s_tol))
               {
-                // TODO: make this more sophisticated
-                // --> Use relative velocity to determine how fast to slow down
-                //
+                /** TODO: make this more sophisticated
+                 * --> Use relative velocity to determine how fast to slow down
+                */
+                //ref_vel = 29.5; 
                 too_close = true;
-                speed_limit = check_speed*2.24;
+                speed_limit = center_cars[i].speed;
                 float relative_vel = ref_vel - speed_limit;
+                //std::cout << relative_vel << std::endl;
+                bool left_clear = false;
+                bool right_clear = false;
+                int left_clear_count = 0;
+                int right_clear_count = 0;
+                for (int j = 0; j < left_cars.size(); ++j)
+                {
+                   Vehicle left_car = left_cars[i];
+                   if ((left_car.check_car_s-car_s) > turn_tol)
+                   {
+                     ++left_clear_count;
+                     left_clear = true;
+                     //std::cout << "Left clear" << std::endl;
+                   }
+                }
+                for (int j = 0; j < right_cars.size(); ++j)
+                {
+                  Vehicle right_car = right_cars[i];
+                  if (fabs(right_car.check_car_s-car_s) > turn_tol)
+                  {
+                    right_clear = true;
+                    ++right_clear_count;
+                    //std::cout << "Right clear" << std::endl;
+                  }
+                }
+                if (left_clear_count == left_cars.size())
+                {
+                  //std::cout << "LEFT CLEAR" << std::endl;
+                  //lane = 0;
+                }
+                else if (right_clear_count == right_cars.size())
+                {
+                  //std::cout << "RIGHT CLEAR" << std::endl;
+                  //lane = 2;
+                }
               }
             }
           }
+
+          if (fabs(car_d-left_lane) <= 0.5)
+          {
+            for (int i = 0; i < left_cars.size(); ++i)
+            {
+              Vehicle left_car = left_cars[i];
+              if((left_car.check_car_s > car_s) && ((left_car.check_car_s - car_s) < s_tol))
+              {
+                /** TODO: make this more sophisticated
+                 * --> Use relative velocity to determine how fast to slow down
+                */
+                //ref_vel = 29.5; 
+                too_close = true;
+                speed_limit = left_car.speed;
+                float relative_vel = ref_vel - speed_limit;
+                //std::cout << relative_vel << std::endl;
+                bool center_clear = false;
+                int center_clear_count = 0;
+                for (int j = 0; j < center_cars.size(); ++j)
+                {
+                   Vehicle center_car = center_cars[i];
+                   if (fabs(center_car.check_car_s-car_s) > turn_tol)
+                   {
+                     center_clear = true;
+                     ++center_clear_count;
+                   }
+                }
+                if (center_clear_count == center_cars.size());
+                {
+                  //std::cout << "CENTER CLEAR" << std::endl;
+                  lane = 1;
+                }
+              }
+            }
+          }
+
+          if (fabs(car_d-right_lane) <= 0.5)
+          {
+            for (int i = 0; i < right_cars.size(); ++i)
+            {
+              Vehicle right_car = right_cars[i];
+              if((right_car.check_car_s > car_s) && ((right_car.check_car_s - car_s) < s_tol))
+              {
+                /** TODO: make this more sophisticated
+                 * --> Use relative velocity to determine how fast to slow down
+                */
+                //ref_vel = 29.5; 
+                too_close = true;
+                speed_limit = right_car.speed;
+                float relative_vel = ref_vel - speed_limit;
+                //std::cout << relative_vel << std::endl;
+                bool center_clear = false;
+                int center_clear_count = 0;
+                for (int j = 0; j < center_cars.size(); ++j)
+                {
+                   Vehicle center_car = center_cars[i];
+                   if (fabs(center_car.check_car_s-car_s) > turn_tol)
+                   {
+                     center_clear = true;
+                     ++center_clear_count;
+                   }
+                }
+                if (center_clear_count == center_cars.size());
+                {
+                  //std::cout << "CENTER CLEAR" << std::endl;
+                  lane = 1;
+                }
+              }
+            }
+          }
+
 
           if (too_close)
           {
-            //speed adjustment
             if (ref_vel > speed_limit)
             {
               ref_vel -= 0.224;              
-            } else{
+            }
+            else 
+            {
               ref_vel += 0.224;
             }
-            //lane change
-            if (lane_offset == center_lane)
-            {
-              if (left_cars.empty())
-              {
-                lane = 0;
-              } else if (right_cars.empty()){
-                lane = 2;
-              }
-            } else if (lane_offset == left_lane || lane_offset == right_lane){
-              if (center_cars.empty())
-              {
-                lane = 1;
-              }
-            }
-          } else if(ref_vel < speed_limit) {
+          }
+          else if(ref_vel < speed_limit)
+          {
             ref_vel += 0.224;
           }
 
+          /**
+           * TODO: define a path made up of (x,y) points that the car will visit
+           *   sequentially every .02 seconds
+           */
           //creating list of widley spaced (x,y) waypoints, evenly spaced at 30m
           //later, we interpolate these points with a spline and fill with more points
           vector<double> ptsx;
@@ -303,6 +395,7 @@ int main() {
           }
 
           //in Frenet, add evenly 30m spaced points ahead of the starting reference
+
           vector<double> next_wp0 = getXY(car_s+30, (lane_offset), map_waypoints_s, map_waypoints_x, map_waypoints_y);
           vector<double> next_wp1 = getXY(car_s+60, (lane_offset), map_waypoints_s, map_waypoints_x, map_waypoints_y);
           vector<double> next_wp2 = getXY(car_s+90, (lane_offset), map_waypoints_s, map_waypoints_x, map_waypoints_y);
@@ -374,11 +467,11 @@ int main() {
             next_y_vals.push_back(y_point);
           }
 
+          //std::cout << next_x_vals << std::endl;
           /**
            * 
-           * END OF MY CODE
+           * ENDOF MY CODE
            */
-
           json msgJson;
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
