@@ -11,96 +11,16 @@ import matplotlib.pyplot as plt
 import math
 import time
 
-def colorspace_thresh(img, colorspace):
-        ## V1
-
-    if colorspace == 'BGR':
-        low = [0,0,0]
-        high = [255,255,255]
-    elif colorspace == 'HLS':
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-        low = [0,0,125]
-        high = [0,24,255]
-    elif colorspace == 'HSV':
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-        low = [255,129,0]
-        high = [255,255,0]
-        
-    ch0, ch1, ch2 = cv2.split(img)
-
-        # V1
-        
-    binary0 = np.zeros_like(ch0)
-    binary0[(ch0 >= low[0]) & (ch0 <= high[0])] = 1
-        
-    binary1 = np.zeros_like(ch1)
-    binary1[(ch1 >= low[1]) & (ch1 <= high[1])] = 1
-        
-    binary2 = np.zeros_like(ch2)
-    binary2[(ch2 >= low[2]) & (ch2 <= high[2])] = 1
-
-    color_binary = np.dstack(( binary0, binary1, binary2))*255
-        
-    return color_binary
-
-def final_canny(img):
-    '''
-    Using method from advanced lane finding
-    '''
-    BGR_binary = colorspace_thresh(img, 'BGR')
-    HSV_binary = colorspace_thresh(img, 'HSV')
-    HLS_binary = colorspace_thresh(img, 'HLS')
-        
-        # Gradient Threshing
-    BGR_canny = cv2.Canny(BGR_binary, -67, 0)
-    HSV_canny = cv2.Canny(HSV_binary, -67, 0)
-    HLS_canny = cv2.Canny(HLS_binary, -67, 0)
-        
-        # Combing threshed images of the RGB, HSV, HLS spaces
-    combo_canny = cv2.bitwise_or(BGR_canny, HSV_canny)
-    combo_canny = cv2.bitwise_or(combo_canny, HLS_canny)
-    return combo_canny
-
 def preprocess(image):
     '''
     Prepocess image 
     '''
-    image = cv2.resize(image, (320, 160))
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    sizex = image.shape[1]
-    sizey = image.shape[0]
-    #image = image[70:sizey-25, :]      ## Add cropping to NN model
-    #image = cv2.GaussianBlur(image, (3,3), 0)
+    if type(None) == type(image):
+      return image
+    sizey = image.shape[0]    
+    image = cv2.cvtColor(cv2.resize(image[70:sizey-25, :], (32,32)), cv2.COLOR_BGR2RGB)
     return image
 
-'''def get_data(list_of_driving_logs):
-    images = []
-    steer_cmds = []
-    for path in list_of_driving_logs:
-        log = pd.read_csv(path+'driving_log.csv')
-        for index in log.index:
-            # Get image paths from csv
-            left_img_path = path+'IMG/'+log.left.values[index].split('/')[-1]
-            center_img_path = path+'IMG/'+log.center.values[index].split('/')[-1]
-            right_img_path = path+'IMG/'+log.right.values[index].split('/')[-1]
-            # preprocess images
-            left_image = preprocess(cv2.imread(left_img_path))
-            center_image = preprocess(cv2.imread(center_img_path))
-            right_image = preprocess(cv2.imread(right_img_path))
-            # get steering values for each image
-            steer_adjustment = 0.2
-            left_steer = log.steer.values[index] - steer_adjustment
-            center_steer = log.steer.values[index]
-            right_steer = log.steer.values[index] + steer_adjustment
-            # append images and steering to lists for training
-            images.append(left_image)
-            images.append(center_image)
-            images.append(right_image)
-            steer_cmds.append(left_steer)
-            steer_cmds.append(center_steer)
-            steer_cmds.append(right_steer)
-    return images, steer_cmds
-'''
 def get_data(list_of_driving_logs):
     image_paths = []
     steer_cmds = []
@@ -108,15 +28,18 @@ def get_data(list_of_driving_logs):
         log = pd.read_csv(path+'driving_log.csv')
         print("Getting log from {}.".format(path))
         for index in log.index:
+
             # Get image paths from csv
             left_img_path = path+'IMG/'+log.left.values[index].split('/')[-1]
             center_img_path = path+'IMG/'+log.center.values[index].split('/')[-1]
             right_img_path = path+'IMG/'+log.right.values[index].split('/')[-1]
+
             # get steering values for each image
             steer_adjustment = 0.2
-            left_steer = log.steer.values[index] + steer_adjustment
-            center_steer = log.steer.values[index]
-            right_steer = log.steer.values[index] - steer_adjustment
+            left_steer = log.steering.values[index] + steer_adjustment
+            center_steer = log.steering.values[index]
+            right_steer = log.steering.values[index] - steer_adjustment
+
             # append images and steering to lists for training
             image_paths.append(left_img_path)
             image_paths.append(center_img_path)
@@ -124,53 +47,9 @@ def get_data(list_of_driving_logs):
             steer_cmds.append(left_steer)
             steer_cmds.append(center_steer)
             steer_cmds.append(right_steer)
-    return image_paths, steer_cmds
+    return image_paths, steer_cmds   
 
-def get_correction_data(list_of_correction_logs):
-    image_paths = []
-    steer_cmds = []
-    for path in list_of_correction_logs:
-        log = pd.read_csv(path+'driving_log.csv')
-        for index in log.index:
-            side = path.split('/')[1].split('-')[0]
-            if side == 'left':
-                if log.steer.values[index] > 0:
-                    # Get image paths from csv
-                    left_img_path = path+'IMG/'+log.left.values[index].split('/')[-1]
-                    center_img_path = path+'IMG/'+log.center.values[index].split('/')[-1]
-                    right_img_path = path+'IMG/'+log.right.values[index].split('/')[-1]
-                    # get steering values for each image
-                    steer_adjustment = 0.2
-                    left_steer = log.steer.values[index] + steer_adjustment
-                    center_steer = log.steer.values[index]
-                    right_steer = log.steer.values[index] - steer_adjustment
-                    # append images and steering to lists for training
-                    image_paths.append(left_img_path)
-                    image_paths.append(center_img_path)
-                    image_paths.append(right_img_path)
-                    steer_cmds.append(left_steer)
-                    steer_cmds.append(center_steer)
-                    steer_cmds.append(right_steer)
-            elif side == 'right':
-                if log.steer.values[index] < 0:
-                    # Get image paths from csv
-                    left_img_path = path+'IMG/'+log.left.values[index].split('/')[-1]
-                    center_img_path = path+'IMG/'+log.center.values[index].split('/')[-1]
-                    right_img_path = path+'IMG/'+log.right.values[index].split('/')[-1]
-                    # get steering values for each image
-                    steer_adjustment = 0.2
-                    left_steer = log.steer.values[index] - steer_adjustment
-                    center_steer = log.steer.values[index]
-                    right_steer = log.steer.values[index] + steer_adjustment
-                    # append images and steering to lists for training
-                    image_paths.append(left_img_path)
-                    image_paths.append(center_img_path)
-                    image_paths.append(right_img_path)
-                    steer_cmds.append(left_steer)
-                    steer_cmds.append(center_steer)
-                    steer_cmds.append(right_steer)
-    return image_paths, steer_cmds    
-
+#generator definition
 def generator(samples, batch_size): 
     n = 0
     num_samples = len(samples[0])
@@ -183,93 +62,86 @@ def generator(samples, batch_size):
             y_batch = []
             batch_n = 0
             for n in range(offset, offset+batch_size):
-                #while n < len(X):
-                #print('n: {} n_samples: {}'.format(n, num_samples))
-                
-                #while batch_n < batch_size:
-         #       try:
+                #add random flipping
                 if np.random.choice(flip_opts):
-                    #print("n: {} flipping? {}".format(n, 'yes'))
                     img = cv2.flip(preprocess(cv2.imread(X[n])), 1)
                     ang = -1.0*y[n]
                     X_batch.append(img)
-                    y_batch.append(ang)
-                    #print("n: {} flipping? {}".format(n, 'no'))                        
+                    y_batch.append(ang)                        
                 img = preprocess(cv2.imread(X[n]))
                 ang = y[n]                        
                 X_batch.append(img)
                 y_batch.append(ang)
-        #        except:
-                    #batch_n -= 1
-                    #n -= 1
-          #          continue
                 batch_n += 1
-                #n += 1
-                    #print(n)
             yield np.array(X_batch), np.array(y_batch)
-
-
 
 
 def main():
     batch_size=128
+
     # set lists of directories to use data from
-    list_of_driving_logs = ['data/data/']#, 'data/updated-center-normal/', 'data/center-normal/', 'data/center-normal2/']#, 'data/center-reverse/', 'data/center-normal2/']
-    # set lists of directories to use for data correction
-    #list_of_correction_logs = ['data/left-normal/', 'data/right-normal/']
-    # Get list of image paths and steering commands
+    list_of_driving_logs = ['data/data/']
     image_paths, steer_cmds = get_data(list_of_driving_logs)
-    #print(len(image_paths), len(steer_cmds))
-    #correction_img_paths, correction_steer_cmds = get_correction_data(list_of_correction_logs)
-    #print(len(correction_img_paths), len(correction_steer_cmds))
-    # appending correction data to image_paths and steer_cmds
-    #image_paths = image_paths + correction_img_paths
-    #steer_cmds = steer_cmds + correction_steer_cmds
-    #print(len(image_paths), len(steer_cmds))
-    # Split and shuffle data
+
+    # Split and shuffle data (testing size 0f 20%)
     image_paths, steer_cmds = shuffle(image_paths, steer_cmds)
     X_train, X_test, y_train, y_test = train_test_split(image_paths, steer_cmds, test_size=0.2, shuffle=False)
+    #shuffle the data again
     X_train, y_train = shuffle(X_train, y_train)
     X_test, y_test = shuffle(X_test, y_test)
-    print(len(X_train), len(steer_cmds))    
+    
+    #remove excess data for each distribution among batches
     X_train = X_train[0:-(len(X_train)%batch_size)]
     X_test = X_test[0:-(len(X_test)%batch_size)]
     y_train = y_train[0:-(len(y_train)%batch_size)]
     y_test = y_test[0:-(len(y_test)%batch_size)]
 
-    print("Test...X: {} y: {}\nTrain...X: {} y: {}".format(len(X_test)//batch_size, len(X_test), len(X_train)//batch_size, len(X_train)))
-    time.sleep(5)
-    # Get image to use for input_shape of DNN
+
+    # Get image to use for input_shape of DNN & save example of image and a flipped image
     ex_img = preprocess(cv2.imread(X_train[950]))
     ex_img_flip = cv2.flip(ex_img, 1)
     cv2.imwrite('ex_img.png', cv2.cvtColor(ex_img, cv2.COLOR_BGR2RGB))
     cv2.imwrite('flipped.png', cv2.cvtColor(ex_img_flip, cv2.COLOR_BGR2RGB))
-    print('ex_img steer: {}'.format(y_train[950]))
-    #cv2.waitKey(5000)
+
     # Define train and test generator variables
     train_generator = generator((X_train, y_train), batch_size)
     test_generator = generator((X_test, y_test), batch_size)
 
-    # DNN Architecture
+    # DNN V2
+    from keras.models import Sequential
+    from keras.layers import Convolution2D, Dropout, MaxPooling2D, Flatten, Activation, Dense, Cropping2D, Lambda
+    from keras.callbacks import EarlyStopping
+
+    #creating model to be trained
     model = Sequential()
-    model.add(Lambda(lambda x: x/255.0 - 0.5, input_shape=ex_img.shape))
-    model.add(Cropping2D(cropping=((70, 25), (0, 0))))
-    model.add(Conv2D(24,5,5, subsample=(2,2), activation='elu'))
-    model.add(Conv2D(36,5,5, subsample=(2,2), activation='elu'))
-    model.add(Conv2D(48,5,5, subsample=(2,2), activation='elu'))
-    model.add(Conv2D(64,3,3, activation='elu'))
-    model.add(Conv2D(64,3,3, activation='elu'))
-    model.add(Dropout(0.8))    
+    model.add(Lambda(lambda x: x /255.0 - 0.5, input_shape=(32,32,3) ))
+    model.add(Convolution2D(15, 3, 3, subsample=(2, 2), activation = 'relu'))
+    model.add(Dropout(0.4))
+    model.add(MaxPooling2D((2,2)))
     model.add(Flatten())
-    model.add(Dense(100))
-    #model.add(Dropout(0.6))
-    model.add(Dense(50))
-    model.add(Dense(10))
     model.add(Dense(1))
 
+    # DNN Architecture -- NOT USED
+    #model = Sequential()
+    #model.add(Lambda(lambda x: x/255.0 - 0.5, input_shape=ex_img.shape))
+    #model.add(Cropping2D(cropping=((70, 25), (0, 0))))
+    #model.add(Conv2D(24,5,5, subsample=(2,2), activation='elu'))
+    #model.add(Conv2D(36,5,5, subsample=(2,2), activation='elu'))
+    #model.add(Conv2D(48,5,5, subsample=(2,2), activation='elu'))
+    #model.add(Conv2D(64,3,3, activation='elu'))
+    #model.add(Conv2D(64,3,3, activation='elu'))
+    #model.add(Dropout(0.8))    
+    #model.add(Flatten())
+    #model.add(Dense(100))
+    #model.add(Dropout(0.6))
+    #model.add(Dense(50))
+    #model.add(Dense(10))
+    #model.add(Dense(1))
+
     # Compile using adam optimizer and fit to train/validation data
-    model.compile('adam', loss='mse')
-    #history_object = model.fit(images, steer_cmds, verbose=1, validation_split=0.2, epochs=10)
+    model.compile('adam', loss='mse', metrics=['accuracy'])
+    
+    #add early stopping callback to stop once overfitting occurs
     es = EarlyStopping(verbose=1)
     history_object = model.fit_generator(train_generator, steps_per_epoch=math.floor(len(X_train)/batch_size), validation_data=test_generator, validation_steps=math.floor(len(X_test)/batch_size), epochs=15, verbose=1, callbacks=[es])
 
@@ -285,7 +157,7 @@ def main():
     plt.show()
 
     # Save the model
-    model.save('modelv2.h5')
+    model.save('model.h5')
 
 if __name__ == '__main__':
     main()

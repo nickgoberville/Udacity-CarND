@@ -54,9 +54,11 @@ The model.py file contains the code for training and saving the convolution neur
 
 #### 1. An appropriate model architecture has been employed
 
-My model consists of a convolution neural network with a sequence of 5 convolutional layers and 4 fully connected layers. This is the same architecture used by the autonomous vehicle team at NVIDIA. This architecture proved to achieve a solution very well. The model architecture can be seen in lines 112-123 in `model.py`.
+My model consists of a convolution neural network with an input of 1 convolutional layer, followed by a dropout layer with a 40% dropout rate, a max pooling layer, and finally a fully connected layer with the steering command as output.
 
-The model includes RELU activations after each convolution to introduce nonlinearity. After the convolutional layers, the fully connected layers provide the network the ability to merge the features from the convolutions. The final layer is a `Dense()` fully connected layer with an output size of 1 which is the steering command. This steering command is used to control the vehicle.
+I had attempted to use the same architecture used by the autonomous vehicle team at NVIDIA. This architecture proved to achieve a solution very well for some, but I could not tune the parameters well enough for proper training, so the model explained above was used.
+
+The model includes a RELU activations after the convolution to introduce nonlinearity. After the convolutional layers, the fully connected layer provide the network the ability to merge the features from the convolutions. The final layer is a `Dense()` fully connected layer with an output size of 1 which is the steering command. This steering command is used to control the vehicle.
 
 #### 2. Attempts to reduce overfitting in the model
 
@@ -69,21 +71,23 @@ This allowed me to see that I should reduce the number of epochs to 6. After 6 e
 
 #### 3. Model parameter tuning
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 126).
+The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 142).
 
 #### 4. Appropriate training data
 
-The training data the I used included the given dataset from the Udacity team as well as a dataset I collected. My dataset included additional driving of the route like normal, driving in the opposite direction, and multiple iterations of driving past the curve after the bridge since that seemed to be one of the more complicated areas for the vehicle to traverse for me.
+The training data that I used was just the data that was collected by the Udacity team. This data was sufficient enough to train my vehicle. Other data was collected, but not utilized in the final model.
 
 ### Model Architecture and Training Strategy
 
 #### 1. Solution Design Approach
 
-The overall strategy for deriving a model architecture was to use the well defined model from NVIDIA and improve smaller parameters/data augmentation to achieve a full lap.
+The overall strategy for deriving a model architecture was to use the well defined model from NVIDIA and improve smaller parameters/data augmentation to achieve a full lap. This was attempted but this model seem to be too much for this application. So another model was used which will be explained in further steps.
 
-The validation/training data split was done using keras's nice intergration of the data split in the `keras.fit()` function. 
+The validation/training data split was done using `sklearn.model_selection.train_test_split()` in lines `87-91`. 
 
-I took advantage of the dataset provided from the Udacity team and ran my initial model being trained on just that data. Using this data, I preprocessed the images using various threshing techniques we learned in the advanced lane detection modules. An example image of the result from preprocessing is shown below:
+I took advantage of the dataset provided from the Udacity team and ran my initial model being trained on just that data. Using this data, I preprocessed the images by resizing them to (32,32,3) for fast training of the DNN model. 
+
+I also had attempted to use threshing techniques thinking this would give the DNN some features to understand from the beginning without having to learn them, but this also failed.
 
 ![alt text][image5]
 
@@ -93,19 +97,6 @@ This is an overview image of the vehicle, but the same threshing parameters were
 
 I attempted to fix this by recording just driving past this path multiple times, increasin the number of times the model would be trained on this curve, but I could not get promising results. I collected additional regular routes of the track as well as driving in the opposite direction to help the model generalize and add more right turns.
 
-Seeing that I could not get the model to work with threshing, the final method used was a simple one. Using all the data I collected as well as the dataset provided, I trained the model with the raw RGB images at 6 epochs. The results are shown below:
-
-![alt text][image4]
+Seeing that I could not get the model to work with threshing, the final method used was a simple one. Using all the data I collected as well as the dataset provided, I trained the model with the raw RGB images of size (32,32,3) at 2 epochs using the model.
 
 At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
-
-
-
-Etc ....
-
-After the collection process, I had X number of data points. I then preprocessed this data by ...
-
-
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
-
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
