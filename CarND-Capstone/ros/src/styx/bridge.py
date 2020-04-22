@@ -100,10 +100,10 @@ class Bridge(object):
         return tw
 
     def create_steer(self, val):
-        st = 1#SteeringReport()
-        #st.steering_wheel_angle = val * math.pi/180.0
-        #st.enabled = True
-        #st.speed = self.val
+        st = SteeringReport()
+        st.steering_wheel_angle_cmd = val * math.pi/180.0
+        st.enabled = True
+        st.speed = self.vel
         return st
 
     def calc_angular(self, yaw):
@@ -144,6 +144,7 @@ class Bridge(object):
 
     def publish_controls(self, data):
         steering, throttle, brake = data['steering_angle'], data['throttle'], data['brake']
+        print(steering)
         self.publishers['steering_report'].publish(self.create_steer(steering))
         self.publishers['throttle_report'].publish(self.create_float(throttle))
         self.publishers['brake_report'].publish(self.create_float(brake))

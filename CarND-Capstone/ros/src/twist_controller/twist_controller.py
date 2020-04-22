@@ -8,7 +8,7 @@ ONE_MPH = 0.44704
 
 
 class Controller(object):
-    def __init__(self, vehicle_mass, fuel_capacity, brake_deadband, devel_limit, 
+    def __init__(self, vehicle_mass, fuel_capacity, brake_deadband, decel_limit, 
         accel_limit, wheel_radius, wheel_base, steer_ratio, max_lat_accel, max_steer_angle):
         
         # TODO: Implement
@@ -20,6 +20,7 @@ class Controller(object):
         mn = 0.0 # min throttle
         mx = 0.2 # max throttle
         self.throttle_controller = PID(kp, ki, kd, mn, mx)
+        self.brake_controller = PID(0.3, 0.0, 0.0, 0.0, 700)
 
         tau = 0.5 # cutoff frequency
         ts = 0.02 # sample time
@@ -33,7 +34,7 @@ class Controller(object):
         self.wheel_radius = wheel_radius
         self.last_time = rospy.get_time()
        
-    def control(self, current_vel, dbw_enabled, linear_vel, angular_vel):
+    def control(self, linear_vel, dbw_enabled, current_vel, angular_vel):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
         if not dbw_enabled:
@@ -42,17 +43,17 @@ class Controller(object):
         
         current_vel = self.vel_lpf.filt(current_vel)
 
-        steering = self.yaw_controller.get_steering(linear_vel, angular_vel, current_vel)
+        steering = self.yaw_controller.get_steering(current_vel, angular_vel, linear_vel)
 
-        vel_error = linear_vel - current_vel
+        vel_error = -(linear_vel - current_vel)
         self.last_vel = current_vel
-
+        print(vel_error)
         current_time = rospy.get_time()
         sampled_time = current_time - self.last_time
         self.last_time = current_time
 
         throttle = self.throttle_controller.step(vel_error, sampled_time)
-        brake = 0
+        brake = 0#self.brake_controller.step(-vel_error, sampled_time)
 
         if linear_vel == 0.0 and current_vel < 0.1:
             throttle = 0
@@ -62,5 +63,7 @@ class Controller(object):
             throttle = 0
             decel = max(vel_error, self.decel_limit)
             brake = abs(decel)*self.vehicle_mass*self.wheel_radius
+
+        
 
         return throttle, brake, steering

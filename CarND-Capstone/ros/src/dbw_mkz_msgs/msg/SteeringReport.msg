@@ -1,7 +1,7 @@
 Header header
 
 # Steering Wheel
-float32 steering_wheel_angle      # rad
+float32 steering_wheel_angle_cmd      # rad
 float32 steering_wheel_cmd        # rad or Nm
 float32 steering_wheel_torque     # Nm
 uint8 steering_wheel_cmd_type
